@@ -1,0 +1,23 @@
+name: Build Resume
+on:
+  push:
+    tags:
+      - "*"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Build the PDF Generator
+        run: docker build -t chrome-headless-render-pdf .
+      - name: Build the PDF
+        run: docker run --rm -v$(pwd):/build chrome-headless-render-pdf --chrome-option=--no-sandbox --include-background --url file:///build/resume.html --pdf resume-plain.pdf
+      - name: Apply Metadata
+        run: docker run --rm -v$(pwd):/build --entrypoint gs chrome-headless-render-pdf -o resume.pdf -sDEVICE=pdfwrite resume-plain.pdf resume.pdfmark
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          files: |
+            resume.pdf
